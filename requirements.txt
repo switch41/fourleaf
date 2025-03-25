@@ -1,0 +1,43 @@
+# AI & Image Processing
+opencv-python>=4.8.0
+tensorflow>=2.13.0
+tensorflow-hub>=0.14.0
+onnx>=1.14.0
+numpy>=1.24.0
+scipy>=1.11.0
+pillow>=10.0.0
+
+# Blockchain
+hyperledger-fabric-sdk>=1.4.0
+web3>=6.0.0
+ipfshttpclient>=0.8.0
+cryptography>=41.0.0
+py-ecc>=7.0.0
+
+# Backend
+fastapi>=0.100.0
+uvicorn>=0.23.0
+pydantic>=2.0.0
+python-multipart>=0.0.6
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+sqlalchemy>=2.0.0
+alembic>=1.11.0
+psycopg2-binary>=2.9.0
+pymongo>=4.4.0
+
+# Testing & Development
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+black>=23.7.0
+isort>=5.12.0
+flake8>=6.1.0
+mypy>=1.5.0
+
+# Utilities
+python-dotenv>=1.0.0
+requests>=2.31.0
+aiohttp>=3.8.0
+tenacity>=8.2.0
+loguru>=0.7.0 

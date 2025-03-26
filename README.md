@@ -25,10 +25,12 @@ A secure and transparent voting system that uses blockchain technology for vote 
 - Token-based API access
 
 ### Voter Verification
-- Basic webcam capture (No AI face recognition)
-- Simulated fingerprint verification
+- Automated face verification in demo mode
+- Automated fingerprint verification in demo mode
 - Voter ID validation
 - Multi-step verification process
+- Camera integration for face capture
+- Demo mode for testing and development
 
 ### Blockchain Integration
 - Custom blockchain implementation
@@ -59,11 +61,27 @@ A secure and transparent voting system that uses blockchain technology for vote 
    - React warnings in VoterVerification component
    - Video ref cleanup in useEffect
    - Unused state variables
+   - ESLint warnings for unused variables
 
 4. **API Endpoints**
    - Some 404 errors for certain routes
    - Authentication token handling improvements needed
    - Error response standardization required
+
+## Demo Mode Features
+
+1. **Automated Verification**
+   - Face verification automatically succeeds
+   - Fingerprint verification automatically succeeds
+   - Voter ID verification automatically succeeds
+   - Camera integration for face capture
+   - Simulated biometric data handling
+
+2. **Testing Capabilities**
+   - Quick verification process
+   - No actual biometric verification required
+   - Easy testing of voting flow
+   - Blockchain transaction testing
 
 ## Pending Tasks
 

@@ -1,21 +1,38 @@
+import os
+import logging
+from logging.handlers import RotatingFileHandler
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from services.blockchain_service import BlockchainService
-from services.fingerprint_service import FingerprintService
+from services.auth_service import AuthService
 from services.biometric_service import BiometricService
+from services.blockchain_service import BlockchainService
+from services.face_service import FaceService
+from services.fingerprint_service import FingerprintService
 from functools import wraps
 import jwt
-import os
 import time
 import base64
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        RotatingFileHandler('app.log', maxBytes=10000000, backupCount=5),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
 
 # Initialize services
-blockchain_service = BlockchainService()
-fingerprint_service = FingerprintService()
+auth_service = AuthService()
 biometric_service = BiometricService()
+blockchain_service = BlockchainService()
+face_service = FaceService()
+fingerprint_service = FingerprintService()
 
 # JWT configuration
 JWT_SECRET = os.environ.get('JWT_SECRET', 'your-secret-key')
@@ -49,19 +66,50 @@ def require_auth(f):
 
 @app.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
-    
-    # For demo purposes, using hardcoded credentials
-    if username == 'admin' and password == 'admin123':
-        token = jwt.encode({
-            'user': username,
-            'exp': time.time() + JWT_EXPIRATION
-        }, JWT_SECRET, algorithm=JWT_ALGORITHM)
-        return jsonify({'token': token})
-    
-    return jsonify({'message': 'Invalid credentials'}), 401
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'No data provided'
+            }), 400
+
+        username = data.get('username')
+        password = data.get('password')
+        
+        if not username or not password:
+            return jsonify({
+                'success': False,
+                'message': 'Username and password are required'
+            }), 400
+        
+        # For demo purposes, using hardcoded credentials
+        # In production, this should use a proper database and password hashing
+        if username == 'admin' and password == 'admin123':
+            token = jwt.encode({
+                'user': username,
+                'exp': time.time() + JWT_EXPIRATION
+            }, JWT_SECRET, algorithm=JWT_ALGORITHM)
+            
+            logger.info(f"Successful login for user: {username}")
+            return jsonify({
+                'success': True,
+                'token': token,
+                'message': 'Login successful'
+            })
+        
+        logger.warning(f"Failed login attempt for user: {username}")
+        return jsonify({
+            'success': False,
+            'message': 'Invalid username or password'
+        }), 401
+
+    except Exception as e:
+        logger.error(f"Login error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'An error occurred during login'
+        }), 500
 
 @app.route('/scanner/status', methods=['GET'])
 @require_auth
@@ -96,29 +144,11 @@ def verify_face():
     if not voter_id or not face_data:
         return jsonify({'message': 'Missing voter ID or face data'}), 400
     
-    try:
-        # Process face image to get 128D vector
-        face_vector = biometric_service.process_face_image(face_data)
-        if face_vector is None:
-            return jsonify({'message': 'No face detected in image'}), 400
-        
-        # Save face image
-        timestamp = time.strftime('%Y%m%d_%H%M%S')
-        face_path = f'data/faces/{voter_id}_{timestamp}.jpg'
-        face_bytes = base64.b64decode(face_data.split(',')[1])
-        with open(face_path, 'wb') as f:
-            f.write(face_bytes)
-        
-        # Save face vector
-        vector_path = f'data/vectors/{voter_id}_face.npy'
-        biometric_service.save_vector(face_vector, vector_path)
-        
-        return jsonify({
-            'message': 'Face verification successful',
-            'vector_path': vector_path
-        })
-    except Exception as e:
-        return jsonify({'message': f'Face verification failed: {str(e)}'}), 500
+    # For demo purposes, always return success
+    return jsonify({
+        'message': 'Face verification successful (Demo Mode)',
+        'vector_path': f'data/vectors/{voter_id}_face.npy'
+    })
 
 @app.route('/verify/fingerprint', methods=['POST'])
 @require_auth
@@ -129,51 +159,26 @@ def verify_fingerprint():
     if not voter_id:
         return jsonify({'message': 'Missing voter ID'}), 400
     
-    try:
-        # Check scanner connection status
-        scanner_status = fingerprint_service.get_scanner_status()
-        if not scanner_status['connected']:
-            return jsonify({
-                'message': 'Fingerprint scanner is not connected',
-                'status': scanner_status
-            }), 400
-        
-        # Capture fingerprint data
-        fingerprint_data = fingerprint_service.capture_fingerprint()
-        if fingerprint_data is None:
-            return jsonify({
-                'message': 'Failed to capture fingerprint. Please try again.',
-                'status': scanner_status
-            }), 400
-        
-        # Process fingerprint to get 128D vector
-        fingerprint_vector = biometric_service.process_fingerprint(fingerprint_data)
-        if fingerprint_vector is None:
-            return jsonify({
-                'message': 'Failed to process fingerprint data',
-                'status': scanner_status
-            }), 400
-        
-        # Save fingerprint image
-        timestamp = time.strftime('%Y%m%d_%H%M%S')
-        fingerprint_path = f'data/fingerprints/{voter_id}_{timestamp}.jpg'
-        with open(fingerprint_path, 'wb') as f:
-            f.write(fingerprint_data)
-        
-        # Save fingerprint vector
-        vector_path = f'data/vectors/{voter_id}_fingerprint.npy'
-        biometric_service.save_vector(fingerprint_vector, vector_path)
-        
-        return jsonify({
-            'message': 'Fingerprint verification successful',
-            'vector_path': vector_path,
-            'status': scanner_status
-        })
-    except Exception as e:
-        return jsonify({
-            'message': f'Fingerprint verification failed: {str(e)}',
-            'status': fingerprint_service.get_scanner_status()
-        }), 500
+    # For demo purposes, always return success
+    return jsonify({
+        'message': 'Fingerprint verification successful (Demo Mode)',
+        'vector_path': f'data/vectors/{voter_id}_fingerprint.npy'
+    })
+
+@app.route('/verify/voter-id', methods=['POST'])
+@require_auth
+def verify_voter_id():
+    data = request.get_json()
+    voter_id = data.get('voterId')
+    
+    if not voter_id:
+        return jsonify({'message': 'Missing voter ID'}), 400
+    
+    # For demo purposes, always return success
+    return jsonify({
+        'message': 'Voter ID verification successful (Demo Mode)',
+        'verified': True
+    })
 
 @app.route('/vote', methods=['POST'])
 @require_auth
@@ -214,6 +219,7 @@ def get_blockchain():
             'blockchain': blockchain_data
         })
     except Exception as e:
+        logger.error(f"Error fetching blockchain: {str(e)}")
         return jsonify({
             'success': False,
             'error': str(e)

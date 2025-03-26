@@ -3,102 +3,68 @@ import axios from 'axios';
 import './BlockchainViewer.css';
 
 const BlockchainViewer = () => {
-  const [votes, setVotes] = useState([]);
-  const [selectedVote, setSelectedVote] = useState(null);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+    const [blockchainData, setBlockchainData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchVoteHistory();
-  }, []);
+    useEffect(() => {
+        fetchBlockchainData();
+    }, []);
 
-  const fetchVoteHistory = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/blockchain/votes', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setVotes(response.data.votes);
-      setError('');
-    } catch (err) {
-      setError('Failed to fetch vote history');
-      console.error('Error fetching votes:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const fetchBlockchainData = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get('http://localhost:5000/blockchain', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (response.data.success) {
+                setBlockchainData(response.data.blockchain);
+            } else {
+                setError('Failed to fetch blockchain data');
+            }
+        } catch (err) {
+            setError('Failed to fetch blockchain data');
+            console.error('Error fetching blockchain:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  const viewVoteDetails = async (blockHash) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/blockchain/vote/${blockHash}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setSelectedVote(response.data);
-      setError('');
-    } catch (err) {
-      setError('Failed to fetch vote details');
-      console.error('Error fetching vote details:', err);
-    }
-  };
+    if (loading) return <div className="blockchain-viewer loading">Loading blockchain data...</div>;
+    if (error) return <div className="blockchain-viewer error">{error}</div>;
+    if (!blockchainData) return <div className="blockchain-viewer">No blockchain data available</div>;
 
-  const formatTimestamp = (timestamp) => {
-    return new Date(timestamp * 1000).toLocaleString();
-  };
-
-  return (
-    <div className="blockchain-viewer">
-      <h2>Blockchain Vote History</h2>
-      
-      {loading && <div className="loading">Loading vote history...</div>}
-      
-      {error && <div className="error-message">{error}</div>}
-      
-      <div className="votes-list">
-        {votes.map((vote) => (
-          <div key={vote.hash} className="vote-card">
-            <div className="vote-header">
-              <h3>Block #{vote.index}</h3>
-              <span className="timestamp">{formatTimestamp(vote.timestamp)}</span>
+    return (
+        <div className="blockchain-viewer">
+            <h2>Blockchain Data</h2>
+            <div className="blockchain-stats">
+                <p>Total Blocks: {blockchainData.length}</p>
             </div>
-            <div className="vote-details">
-              <p><strong>Voter ID:</strong> {vote.voter_id}</p>
-              <p><strong>Party:</strong> {vote.party}</p>
-              <p className="hash"><strong>Block Hash:</strong> {vote.hash}</p>
+            <div className="blocks-container">
+                {blockchainData.chain.map((block, index) => (
+                    <div key={block.hash} className="block-card">
+                        <h3>Block #{block.index}</h3>
+                        <div className="block-details">
+                            <p><strong>Hash:</strong> {block.hash}</p>
+                            <p><strong>Previous Hash:</strong> {block.previous_hash}</p>
+                            <p><strong>Timestamp:</strong> {new Date(block.timestamp * 1000).toLocaleString()}</p>
+                            <p><strong>Nonce:</strong> {block.nonce}</p>
+                        </div>
+                        <div className="transactions">
+                            <h4>Transactions</h4>
+                            {block.transactions.map((tx, txIndex) => (
+                                <div key={txIndex} className="transaction">
+                                    <p><strong>Voter ID:</strong> {tx.voter_id}</p>
+                                    <p><strong>Party:</strong> {tx.party}</p>
+                                    <p><strong>Time:</strong> {new Date(tx.timestamp * 1000).toLocaleString()}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
             </div>
-            <button 
-              onClick={() => viewVoteDetails(vote.hash)}
-              className="view-details-button"
-            >
-              View Details
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {selectedVote && (
-        <div className="vote-modal">
-          <div className="modal-content">
-            <h3>Vote Details</h3>
-            <div className="modal-details">
-              <p><strong>Block Index:</strong> {selectedVote.index}</p>
-              <p><strong>Timestamp:</strong> {formatTimestamp(selectedVote.timestamp)}</p>
-              <p><strong>Voter ID:</strong> {selectedVote.data.voter_id}</p>
-              <p><strong>Party:</strong> {selectedVote.data.party}</p>
-              <p className="hash"><strong>Block Hash:</strong> {selectedVote.hash}</p>
-            </div>
-            <button 
-              onClick={() => setSelectedVote(null)}
-              className="close-button"
-            >
-              Close
-            </button>
-          </div>
         </div>
-      )}
-    </div>
-  );
+    );
 };
 
 export default BlockchainViewer; 

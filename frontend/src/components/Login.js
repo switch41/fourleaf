@@ -1,37 +1,36 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import './Login.css';
 
-const Login = ({ onLogin }) => {
+const Login = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        
+        setLoading(true);
+
         try {
             const response = await axios.post('http://localhost:5000/login', {
                 username,
                 password
             });
-            
-            if (response.data.token) {
-                // Store token in localStorage
+
+            if (response.data.success) {
                 localStorage.setItem('token', response.data.token);
-                
-                // Set default authorization header for all future requests
-                axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
-                
-                // Call the onLogin callback with the token
-                onLogin(response.data.token);
+                navigate('/verify');
             } else {
-                setError('Invalid response from server');
+                setError(response.data.message || 'Login failed');
             }
         } catch (err) {
-            console.error('Login error:', err);
-            setError(err.response?.data?.error || 'Login failed. Please try again.');
+            setError(err.response?.data?.message || 'Failed to connect to server');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -50,7 +49,7 @@ const Login = ({ onLogin }) => {
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             required
-                            placeholder="Enter your username"
+                            placeholder="Enter username"
                         />
                     </div>
                     <div className="form-group">
@@ -61,10 +60,12 @@ const Login = ({ onLogin }) => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            placeholder="Enter your password"
+                            placeholder="Enter password"
                         />
                     </div>
-                    <button type="submit">Login</button>
+                    <button type="submit" disabled={loading}>
+                        {loading ? 'Logging in...' : 'Login'}
+                    </button>
                 </form>
                 <div className="login-info">
                     <p>Demo Credentials:</p>

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './components/Login';
 import VoterVerification from './components/VoterVerification';
 import BlockchainViewer from './components/BlockchainViewer';
+import Navigation from './components/Navigation';
 import axios from 'axios';
 import './App.css';
 
@@ -38,47 +39,12 @@ function App() {
   return (
     <Router>
       <div className="App">
-        {isAuthenticated && (
-          <header className="App-header">
-            <h1>Voter Verification System</h1>
-            <nav>
-              <button onClick={handleLogout} className="logout-button">Logout</button>
-            </nav>
-          </header>
-        )}
+        <Navigation />
         <Routes>
-          <Route 
-            path="/login" 
-            element={
-              isAuthenticated ? 
-                <Navigate to="/verify" /> : 
-                <Login onLogin={handleLogin} />
-            } 
-          />
-          <Route 
-            path="/verify" 
-            element={
-              isAuthenticated ? 
-                <VoterVerification /> : 
-                <Navigate to="/login" />
-            } 
-          />
-          <Route 
-            path="/blockchain" 
-            element={
-              isAuthenticated ? 
-                <BlockchainViewer /> : 
-                <Navigate to="/login" />
-            } 
-          />
-          <Route 
-            path="/" 
-            element={
-              isAuthenticated ? 
-                <Navigate to="/verify" /> : 
-                <Navigate to="/login" />
-            } 
-          />
+          <Route path="/login" element={<Login />} />
+          <Route path="/verify" element={<VoterVerification />} />
+          <Route path="/blockchain" element={<BlockchainViewer />} />
+          <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>
     </Router>

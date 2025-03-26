@@ -3,12 +3,18 @@ import numpy as np
 import face_recognition
 import base64
 import os
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, Any
+import logging
+from .face_service import FaceService
+from .fingerprint_service import FingerprintService
 
 class BiometricService:
     def __init__(self):
         self.face_tolerance = 0.6
         self.fingerprint_threshold = 0.8
+        self.face_service = FaceService()
+        self.fingerprint_service = FingerprintService()
+        self.logger = logging.getLogger(__name__)
 
     def process_face_image(self, face_data: str) -> Optional[np.ndarray]:
         """
@@ -137,4 +143,76 @@ class BiometricService:
             return np.load(path)
         except Exception as e:
             print(f"Error loading vector: {str(e)}")
-            return None 
+            return None
+
+    def verify_biometrics(self, voter_id: str, face_data: bytes, fingerprint_data: bytes) -> Dict[str, Any]:
+        try:
+            # Verify face
+            face_result = self.face_service.verify_face(voter_id, face_data)
+            if not face_result['success']:
+                self.logger.error(f"Face verification failed for voter {voter_id}: {face_result['error']}")
+                return {
+                    'success': False,
+                    'error': f"Face verification failed: {face_result['error']}"
+                }
+
+            # Verify fingerprint
+            fingerprint_result = self.fingerprint_service.verify_fingerprint(voter_id, fingerprint_data)
+            if not fingerprint_result['success']:
+                self.logger.error(f"Fingerprint verification failed for voter {voter_id}: {fingerprint_result['error']}")
+                return {
+                    'success': False,
+                    'error': f"Fingerprint verification failed: {fingerprint_result['error']}"
+                }
+
+            return {
+                'success': True,
+                'message': 'Biometric verification successful',
+                'details': {
+                    'face': face_result,
+                    'fingerprint': fingerprint_result
+                }
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error in biometric verification: {str(e)}")
+            return {
+                'success': False,
+                'error': f"Biometric verification failed: {str(e)}"
+            }
+
+    def register_biometrics(self, voter_id: str, face_data: bytes, fingerprint_data: bytes) -> Dict[str, Any]:
+        try:
+            # Register face
+            face_result = self.face_service.register_face(voter_id, face_data)
+            if not face_result['success']:
+                self.logger.error(f"Face registration failed for voter {voter_id}: {face_result['error']}")
+                return {
+                    'success': False,
+                    'error': f"Face registration failed: {face_result['error']}"
+                }
+
+            # Register fingerprint
+            fingerprint_result = self.fingerprint_service.register_fingerprint(voter_id, fingerprint_data)
+            if not fingerprint_result['success']:
+                self.logger.error(f"Fingerprint registration failed for voter {voter_id}: {fingerprint_result['error']}")
+                return {
+                    'success': False,
+                    'error': f"Fingerprint registration failed: {fingerprint_result['error']}"
+                }
+
+            return {
+                'success': True,
+                'message': 'Biometric registration successful',
+                'details': {
+                    'face': face_result,
+                    'fingerprint': fingerprint_result
+                }
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error in biometric registration: {str(e)}")
+            return {
+                'success': False,
+                'error': f"Biometric registration failed: {str(e)}"
+            } 

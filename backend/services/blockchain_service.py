@@ -4,23 +4,22 @@ import time
 from typing import List, Dict, Any, Optional
 
 class Block:
-    def __init__(self, index: int, timestamp: float, data: Dict[str, Any], previous_hash: str):
+    def __init__(self, index: int, transactions: List[Dict[str, Any]], timestamp: float, previous_hash: str):
         self.index = index
+        self.transactions = transactions
         self.timestamp = timestamp
-        self.data = data
         self.previous_hash = previous_hash
         self.nonce = 0  # Initialize nonce first
-        self.hash = self.calculate_hash()  # Then calculate hash
+        self.hash = self.calculate_hash()
 
     def calculate_hash(self) -> str:
-        block_data = {
-            "index": self.index,
-            "timestamp": self.timestamp,
-            "data": self.data,
-            "previous_hash": self.previous_hash,
-            "nonce": self.nonce
-        }
-        block_string = json.dumps(block_data, sort_keys=True)
+        block_string = json.dumps({
+            'index': self.index,
+            'transactions': self.transactions,
+            'timestamp': self.timestamp,
+            'previous_hash': self.previous_hash,
+            'nonce': self.nonce
+        }, sort_keys=True)
         return hashlib.sha256(block_string.encode()).hexdigest()
 
     def mine_block(self, difficulty: int = 4) -> None:
@@ -31,107 +30,114 @@ class Block:
 
 class Blockchain:
     def __init__(self):
-        self.chain: List[Block] = []
-        self.difficulty = 4
-        self.create_genesis_block()
+        self.chain = []
+        self.difficulty = 2
 
     def create_genesis_block(self) -> None:
-        genesis_block = Block(0, time.time(), {"message": "Genesis Block"}, "0")
-        genesis_block.mine_block(self.difficulty)
+        genesis_block = Block(0, [], time.time(), "0")
         self.chain.append(genesis_block)
 
     def get_latest_block(self) -> Block:
         return self.chain[-1]
 
-    def add_block(self, data: Dict[str, Any]) -> Block:
-        block = Block(
-            len(self.chain),
-            time.time(),
-            data,
-            self.get_latest_block().hash
-        )
-        block.mine_block(self.difficulty)
+    def add_block(self, block: Block) -> None:
         self.chain.append(block)
-        return block
 
     def is_chain_valid(self) -> bool:
         for i in range(1, len(self.chain)):
             current_block = self.chain[i]
-            previous_block = self.chain[i-1]
+            previous_block = self.chain[i - 1]
             
             if current_block.hash != current_block.calculate_hash():
                 return False
+                
             if current_block.previous_hash != previous_block.hash:
                 return False
+                
             if current_block.hash[:self.difficulty] != "0" * self.difficulty:
                 return False
+                
         return True
 
 class BlockchainService:
     def __init__(self):
         self.blockchain = Blockchain()
-        self.voted_ids = set()  # Keep track of voters who have already voted
+        self.blockchain.create_genesis_block()
+        # Add some demo data
+        self.create_demo_data()
+
+    def create_demo_data(self):
+        # Add some demo votes
+        demo_votes = [
+            {"voter_id": "RDV6404990", "party": "Party A"},
+            {"voter_id": "KUSHAL001", "party": "Party B"},
+            {"voter_id": "DEMO001", "party": "Party C"}
+        ]
+        
+        for vote in demo_votes:
+            block = self.create_block(vote["voter_id"], vote["party"])
+            self.mine_block(block)
+            self.add_block(block)
 
     def create_block(self, voter_id: str, party: str) -> Block:
-        """Create a new block for a vote"""
-        vote_data = {
-            "type": "vote",
-            "voter_id": voter_id,
-            "party": party,
-            "timestamp": time.time()
-        }
-        latest_block = self.blockchain.get_latest_block()
-        block = Block(
-            len(self.blockchain.chain),
-            time.time(),
-            vote_data,
-            latest_block.hash
+        transactions = [{
+            'voter_id': voter_id,
+            'party': party,
+            'timestamp': time.time()
+        }]
+        
+        previous_block = self.blockchain.get_latest_block()
+        return Block(
+            index=previous_block.index + 1,
+            transactions=transactions,
+            timestamp=time.time(),
+            previous_hash=previous_block.hash
         )
-        return block
 
     def mine_block(self, block: Block) -> None:
-        """Mine a block with the current difficulty"""
-        block.mine_block(self.blockchain.difficulty)
+        block.mine_block(difficulty=2)  # Lower difficulty for demo
 
     def add_block(self, block: Block) -> None:
-        """Add a block to the chain"""
-        self.blockchain.chain.append(block)
-        self.voted_ids.add(block.data["voter_id"])
+        self.blockchain.add_block(block)
 
     def has_voted(self, voter_id: str) -> bool:
-        """Check if a voter has already voted"""
-        return voter_id in self.voted_ids
+        for block in self.blockchain.chain[1:]:  # Skip genesis block
+            for transaction in block.transactions:
+                if transaction['voter_id'] == voter_id:
+                    return True
+        return False
 
     def get_vote_history(self) -> List[Dict[str, Any]]:
-        """Get the complete vote history"""
         votes = []
         for block in self.blockchain.chain[1:]:  # Skip genesis block
-            if block.data.get("type") == "vote":
+            for transaction in block.transactions:
                 votes.append({
-                    "index": block.index,
-                    "timestamp": block.timestamp,
-                    "data": block.data,
-                    "hash": block.hash
+                    'voter_id': transaction['voter_id'],
+                    'party': transaction['party'],
+                    'timestamp': transaction['timestamp'],
+                    'block_hash': block.hash
                 })
         return votes
 
     def get_vote_by_hash(self, block_hash: str) -> Optional[Dict[str, Any]]:
-        """Get a specific vote by its block hash"""
         for block in self.blockchain.chain:
             if block.hash == block_hash:
                 return {
-                    "index": block.index,
-                    "timestamp": block.timestamp,
-                    "data": block.data,
-                    "hash": block.hash
+                    'transactions': block.transactions,
+                    'timestamp': block.timestamp,
+                    'hash': block.hash
                 }
         return None
 
     def get_blockchain(self):
-        """Get the current state of the blockchain"""
         return {
-            'chain': [block.__dict__ for block in self.blockchain.chain],
-            'length': len(self.blockchain.chain),
-            'pending_transactions': [tx.__dict__ for tx in self.blockchain.pending_transactions],
-            'mining_reward': self.blockchain.mining_reward
+            'chain': [{
+                'index': block.index,
+                'transactions': block.transactions,
+                'timestamp': block.timestamp,
+                'hash': block.hash,
+                'previous_hash': block.previous_hash,
+                'nonce': block.nonce
+            } for block in self.blockchain.chain],
+            'length': len(self.blockchain.chain)
         } 

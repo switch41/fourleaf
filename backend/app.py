@@ -25,12 +25,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-# Update CORS configuration
+# Update CORS configuration for Render deployment
 CORS(app, resources={
     r"/*": {
         "origins": [
             "http://localhost:3000",
-            "https://your-frontend-domain.vercel.app"  # Replace with your actual frontend domain
+            "https://fourleaf-frontend.onrender.com"  # Render frontend URL
         ],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
@@ -236,4 +236,5 @@ def get_blockchain():
         }), 500
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port) 

@@ -8,11 +8,11 @@ scipy>=1.11.0
 pillow>=10.0.0
 
 # Blockchain
-hyperledger-fabric-sdk>=1.4.0
-web3>=6.0.0
-ipfshttpclient>=0.8.0
+# hyperledger-fabric-sdk>=1.4.0
+# web3>=6.0.0
+# ipfshttpclient>=0.8.0
 cryptography>=41.0.0
-py-ecc>=7.0.0
+# py-ecc>=7.0.0
 
 # Backend
 fastapi>=0.100.0

@@ -5,7 +5,11 @@ import VoterVerification from './components/VoterVerification';
 import BlockchainViewer from './components/BlockchainViewer';
 import Navigation from './components/Navigation';
 import axios from 'axios';
+import config from './config';
 import './App.css';
+
+// Set default axios base URL
+axios.defaults.baseURL = config.API_URL;
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);

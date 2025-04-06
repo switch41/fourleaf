@@ -56,7 +56,7 @@
 ## 2. Process Flow/Use Case Diagram
 
 ```
-[Voter] → [Login/Registration]
+[admin] → [Login]
           ↓
     [Voter ID Verification]
           ↓
